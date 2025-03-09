@@ -13,8 +13,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Signup function for registering new users
 func Signup(c *gin.Context) {
-	//get the email/pass of req body
 	var body struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`
@@ -26,10 +26,9 @@ func Signup(c *gin.Context) {
 		return
 	}
 
-	//Hash the password
+	// Hash the password
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-
-	if err != nil { //Bind return nothing. if it does, it has to be an error.
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
 	}
@@ -43,18 +42,13 @@ func Signup(c *gin.Context) {
 		return
 	}
 
-	//Response
-	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully", "user": gin.H{
-		"id":       user.ID,
-		"username": user.Username,
-		"email":    user.Email,
-	}})
+	// Return success response
+	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 }
 
+// Login function (sets JWT token in an HTTP-only cookie)
 func Login(c *gin.Context) {
-	// get the email and password off req body
 	var body struct {
-		Username string `json:"username"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -64,47 +58,64 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Look up requested user
+	// Look up user by email
 	var user model.User
-	database.DB.First(&user, "email = ?", body.Email)
-
-	if user.ID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email/password"})
+	if err := database.DB.First(&user, "email = ?", body.Email).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email/password"})
 		return
 	}
 
-	// Compare sent in password to user's actual password hash
-	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.Password))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email/password"})
+	// Compare password hash
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email/password"})
 		return
 	}
 
-	//generate a jwt token
+	// Get JWT secret key (fallback if not set)
+	secret := os.Getenv("SECRET")
+	if secret == "" {
+		secret = "your-fallback-secret-key"
+	}
+
+	// Generate a JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID,
-		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+		"user_id": user.ID,
+		"exp":     time.Now().Add(time.Hour * 24 * 30).Unix(), // Expires in 30 days
 	})
 
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))
-
+	// Sign and get the complete encoded token as a string
+	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to create token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create token"})
 		return
 	}
 
-	fmt.Println(tokenString, err)
+	fmt.Println("Generated Token:", tokenString)
 
-	//send it back
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("Authorization", tokenString, 3600*24*30, "", "", false, true)
+	// Set the JWT token in an HTTP-only cookie
+	c.SetCookie("Authorization", tokenString, 3600*24*30, "/", "", false, true)
 
-	c.JSON(http.StatusOK, gin.H{})
+	// Return success response
+	c.JSON(http.StatusOK, gin.H{"message": "Logged in successfully"})
 }
 
 func Validate(c *gin.Context) {
+	user, exists := c.Get("user") // Retrieve user from context (set in RequireAuth)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Return the authenticated user's details
 	c.JSON(http.StatusOK, gin.H{
-		"message": "I'm logged in",
+		"message": "User is authenticated",
+		"user":    user,
 	})
+}
+
+// Logout function (clears the authentication cookie)
+func Logout(c *gin.Context) {
+	// Set the cookie to expire immediately
+	c.SetCookie("Authorization", "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

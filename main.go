@@ -11,17 +11,26 @@ import (
 )
 
 func main() {
+	// Connect to Database
 	database.ConnectToDb()
 
+	// Initialize Gin Router
 	r := gin.Default()
 
+	// Public Routes (No Authentication Required)
 	r.POST("/signup", controllers.Signup)
 	r.POST("/login", controllers.Login)
-	r.GET("/validate", middleware.RequireAuth, controllers.Validate)
+	r.POST("/logout", controllers.Logout)
 
-	fmt.Println("Server is running on port 8080") // Ensure this prints
+	// Protected Routes (Require Authentication)
+	protected := r.Group("/")
+	protected.Use(middleware.RequireAuth)
+	protected.GET("/validate", controllers.Validate)
+
+	// Start Server
+	fmt.Println("✅ Server is running on port 8080")
 	err := r.Run(":8080")
 	if err != nil {
-		log.Fatal("Failed to start server:", err)
+		log.Fatal("❌ Failed to start server:", err)
 	}
 }
