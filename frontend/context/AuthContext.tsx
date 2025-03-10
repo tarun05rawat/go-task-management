@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/utils/api";
 import axios from "axios";
+import { toast } from "sonner";
 
 interface User {
   token: string;
@@ -20,7 +21,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-
   const router = useRouter();
 
   useEffect(() => {
@@ -34,14 +34,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 🔑 Login Function
   const login = async (email: string, password: string) => {
     try {
+      console.log("Sending login request to backend...");
       const res = await api.post("/login", { email, password });
       const token = res.data.token;
+
+      // ✅ Store token
       localStorage.setItem("token", token);
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       setUser({ token });
-      router.push("/dashboard"); // Redirect to dashboard
-    } catch (error) {
-      console.error("Login failed", error);
+
+      toast.success("Login successful! 🎉");
+      router.push("/dashboard"); // ✅ Redirect to dashboard
+    } catch (error: unknown) {
+      console.error("Login failed:", error);
+
+      if (axios.isAxiosError(error) && error.response) {
+        const errorMessage =
+          error.response.data?.message || "Invalid email or password";
+        toast.error(errorMessage);
+      } else {
+        toast.error("An error occurred. Please try again.");
+      }
     }
   };
 
@@ -49,18 +62,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signup = async (name: string, email: string, password: string) => {
     try {
       console.log("Sending signup request to backend...");
+      await api.post("/signup", { name, email, password });
 
-      const res = await api.post("/signup", { name, email, password }); // ✅ Ensure this matches your backend
-
-      console.log("Signup successful:", res.data);
-
-      // Auto-login after signup
-      await login(email, password);
-    } catch (error) {
+      toast.success("Account created successfully! 🎉 Logging in...");
+      await login(email, password); // ✅ Auto-login after signup
+    } catch (error: unknown) {
       console.error("Signup failed:", error);
 
-      if (axios.isAxiosError(error)) {
-        console.error("Axios error response:", error.response);
+      if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status;
+        const errorMessage =
+          error.response.data?.message || "Signup failed. Please try again.";
+
+        if (status === 400) {
+          toast.error("An account with this email already exists.");
+        } else {
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error("An error occurred. Please try again.");
       }
     }
   };
@@ -70,6 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("token");
     delete api.defaults.headers.common["Authorization"];
     setUser(null);
+    toast.info("You have been logged out.");
     router.push("/login");
   };
 

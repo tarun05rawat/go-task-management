@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // ✅ Import useRouter
 import { Button } from "@/components/ui/button";
 import { Inter } from "next/font/google";
 
@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export default function Home() {
-  const router = useRouter();
+  const router = useRouter(); // ✅ Initialize router
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4">
@@ -26,28 +26,20 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Button
-            onClick={() => router.push("/auth/login")}
-            variant="outline"
-            className="bg-transparent border-slate-500 text-white hover:bg-slate-700 hover:text-white transition-all duration-300 px-6 py-4 text-base h-auto cursor-pointer"
+            onClick={() => router.push("/auth/login")} // ✅ Fix navigation
+            className="bg-transparent border border-slate-500 text-white px-6 py-4 rounded-md hover:bg-slate-700 transition-all duration-300"
           >
             Login
           </Button>
 
           <Button
-            onClick={() => router.push("/auth/signup")}
-            className="bg-teal-600 hover:bg-teal-500 text-white transition-all duration-300 px-6 py-4 text-base h-auto"
+            onClick={() => router.push("/auth/signup")} // ✅ Fix navigation
+            className="bg-teal-600 hover:bg-teal-500 text-white px-6 py-4 rounded-md transition-all duration-300"
           >
             Sign Up
           </Button>
         </div>
       </div>
-
-      {/* Glassmorphism decorative element */}
-      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-800/30 to-transparent backdrop-blur-sm" />
-
-      {/* Subtle decorative circles */}
-      <div className="absolute top-1/4 right-1/4 w-64 h-64 rounded-full bg-teal-500/5 blur-3xl" />
-      <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full bg-indigo-500/5 blur-3xl" />
     </main>
   );
 }
