@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/tarun05rawat/go-task-management/controllers"
 	"github.com/tarun05rawat/go-task-management/database"
@@ -17,6 +19,15 @@ func main() {
 
 	// ✅ Initialize Gin Router
 	r := gin.Default()
+
+	// ✅ Configure CORS Middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"}, // ✅ Allow only frontend origin
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,           // ✅ Allow credentials (tokens/cookies)
+		MaxAge:           12 * time.Hour, // Cache preflight requests
+	}))
 
 	// ✅ Public Routes (No Authentication Required)
 	r.POST("/signup", controllers.Signup)
