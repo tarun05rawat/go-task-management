@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,13 @@ import {
 import api from "@/utils/api";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type Task = {
   id: number;
@@ -42,6 +50,7 @@ export default function Dashboard() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -76,6 +85,8 @@ export default function Dashboard() {
     setTasks([...tasks, res.data]);
     setNewTask("");
     setNewDescription("");
+    setDialogOpen(false);
+    toast.success("Task Created!");
   };
 
   const deleteTask = async (id: number) => {
@@ -138,39 +149,48 @@ export default function Dashboard() {
       <main className="flex-1 p-8">
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-8 h-8 rounded-full">
-                <User className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-4">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Task</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={addTask} className="space-y-4">
+                  <Input
+                    type="text"
+                    placeholder="Task title"
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Task description"
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                  />
+                  <Button type="submit">Create</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-8 h-8 rounded-full">
+                  <User className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
-
-        <form onSubmit={addTask} className="mb-8 space-y-2">
-          <Input
-            type="text"
-            placeholder="Add a new task title"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            className="flex-1"
-          />
-          <Input
-            type="text"
-            placeholder="Add a new task description"
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-            className="flex-1"
-          />
-          <Button type="submit">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Task
-          </Button>
-        </form>
 
         <div className="space-y-4">
           {filteredTasks.map((task) => (
