@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import TaskAttachments from "../components/TaskAttachments";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -242,6 +243,9 @@ export default function Dashboard() {
                   <small className="text-xs text-slate-400">
                     {task.description}
                   </small>
+                  <div className="mt-2">
+                    <TaskAttachments taskId={task.id} />
+                  </div>
                 </div>
               )}
               {editingTaskId !== task.id && (

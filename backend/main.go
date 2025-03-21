@@ -11,11 +11,15 @@ import (
 	"github.com/tarun05rawat/go-task-management/database"
 	"github.com/tarun05rawat/go-task-management/handlers"
 	"github.com/tarun05rawat/go-task-management/middleware"
+	"github.com/tarun05rawat/go-task-management/services"
 )
 
 func main() {
 	// ✅ Connect to Database
 	database.ConnectToDb()
+
+	// ✅ Initialize S3 Client
+	services.InitS3()
 
 	// ✅ Initialize Gin Router
 	r := gin.Default()
@@ -41,8 +45,14 @@ func main() {
 	// ✅ Authentication validation
 	protected.GET("/validate", controllers.Validate)
 
+	// ✅ Upload Task Attachments
+	protected.POST("/tasks/:id/upload", controllers.UploadFiles)
+
 	// ✅ Admin-only Route to View All Users
 	protected.GET("/users", controllers.GetAllUsers)
+
+	// ✅ List Task Attachments
+	protected.GET("/tasks/:id/attachments", controllers.ListAttachments)
 
 	// ✅ Task Management Routes (For Authenticated Users)
 	taskRoutes := protected.Group("/tasks") // ✅ This groups all task routes under `/tasks`
